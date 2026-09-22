@@ -18,6 +18,19 @@ namespace YMTEditor
         private static bool bIsSuperLOD = false;
         public static string dlcName;
 
+        /// <summary>
+        /// Flags normally come from the ymt being loaded. A ymt built from a folder has
+        /// no file to read them from, and a ped with drawables and textures does have
+        /// variations, so say so - saving them as false hides the variations in game.
+        /// </summary>
+        public static void SetVariationFlags(bool hasTexVariations, bool hasDrawblVariations)
+        {
+            bHasTexVariations = hasTexVariations;
+            bHasDrawblVariations = hasDrawblVariations;
+            bHasLowLODs = false;
+            bIsSuperLOD = false;
+        }
+
         public static void LoadXML(string filePath)
         {
             XDocument xmlFile;
@@ -472,14 +485,18 @@ namespace YMTEditor
             // END OF FILE || END -> CPedVariationInfo
         }
 
-        public static void SaveXML(string filePath)
+        //notify: quick save (ctrl+s) reports in the log bar instead of a message box
+        public static void SaveXML(string filePath, bool notify = true)
         {
             XElement xmlFile = YMTXML_Schema(filePath);
             xmlFile.Save(filePath);
-            MessageBox.Show("Saved to: " + filePath, "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (notify)
+            {
+                MessageBox.Show("Saved to: " + filePath, "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
-        public static XmlDocument SaveYMT(string filePath)
+        public static XmlDocument SaveYMT(string filePath, bool notify = true)
         {
             XElement xmlFile = YMTXML_Schema(filePath);
             xmlFile.Save(filePath);
@@ -488,7 +505,10 @@ namespace YMTEditor
             var xmldoc = new XmlDocument();
             xmldoc.Load(xmlFile.CreateReader());
 
-            MessageBox.Show("Saved to: " + filePath, "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (notify)
+            {
+                MessageBox.Show("Saved to: " + filePath, "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
             return xmldoc;
         }
 

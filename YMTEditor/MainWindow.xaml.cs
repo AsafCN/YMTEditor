@@ -8,8 +8,10 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Navigation;
 
 namespace YMTEditor
@@ -24,6 +26,7 @@ namespace YMTEditor
         public static MenuItem _version;
         public static MenuItem _creatureGenButton;
         public static MenuItem _renameButton;
+        public static MenuItem _saveBtn;
 
         public static ObservableCollection<ComponentData> Components;
         public static ObservableCollection<PropData> Props;
@@ -32,6 +35,10 @@ namespace YMTEditor
         public static string dlcName; //only XXXXX
 
         private string openedPath;
+        private string openedFilePath; //the exact file we opened/saved, so Save can write straight back to it
+
+        //ctrl+s -> save over the opened file
+        public static readonly RoutedUICommand SaveCommand = new RoutedUICommand("Save", "Save", typeof(MainWindow));
 
         public MainWindow()
         {
@@ -46,6 +53,7 @@ namespace YMTEditor
             _version = (MenuItem)FindName("version");
             _creatureGenButton = (MenuItem)FindName("CreatureGen");
             _renameButton = (MenuItem)FindName("RenameBtn");
+            _saveBtn = (MenuItem)FindName("SaveBtn");
 
             _removeAsk.IsChecked = Properties.Settings.Default.removeAsk;
             _enableLogs.IsChecked = Properties.Settings.Default.enableLogs;
@@ -63,6 +71,7 @@ namespace YMTEditor
         private void OpenNEW_Click(object sender, RoutedEventArgs e)
         {
             ClearEverything(); //so if we import another file when something is imported it will clear
+            openedFilePath = null; //a new file has no path yet, so Save will ask for one
 
             NewYMTWindow newWindow = new NewYMTWindow();
             newWindow.ShowDialog();
@@ -114,18 +123,90 @@ namespace YMTEditor
             bool? result = xmlFile.ShowDialog();
             if (result == true)
             {
-                try
-                {
-                    string filename = xmlFile.FileName;
-                    XMLHandler.SaveXML(filename);
-                    SetLogMessage("Saved XML to path: " + filename);
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("Failed to save XML YMT, please report it!\n\nReport it on github or discord: grzybeek#9100\nPlease include XML YMT you tried to save!", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-
+                WriteXml(xmlFile.FileName, true);
             }
+        }
+
+        //ctrl+s / File -> Save: write back to the file we opened (or built), no dialog
+        private void SaveCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            SaveCurrent();
+        }
+
+        private void Save_Click(object sender, RoutedEventArgs e)
+        {
+            SaveCurrent();
+        }
+
+        private void SaveCurrent()
+        {
+            if (Components.Count == 0 && Props.Count == 0)
+            {
+                return; //nothing opened yet
+            }
+
+            if (string.IsNullOrEmpty(openedFilePath))
+            {
+                //built from a folder or made with New: there is no file yet, so ask where to put it
+                SaveYMT_Click(null, null);
+                return;
+            }
+
+            if (openedFilePath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                WriteXml(openedFilePath, false);
+            }
+            else
+            {
+                WriteYmt(openedFilePath, false);
+            }
+        }
+
+        private bool WriteXml(string filename, bool notify)
+        {
+            try
+            {
+                XMLHandler.SaveXML(filename, notify);
+                RememberSavedFile(filename);
+                SetLogMessage("Saved XML to path: " + filename);
+                return true;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Failed to save XML YMT, please report it!\n\nReport it on github or discord: grzybeek#9100\nPlease include XML YMT you tried to save!", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+        }
+
+        private bool WriteYmt(string filename, bool notify)
+        {
+            try
+            {
+                System.Xml.XmlDocument newXml = XMLHandler.SaveYMT(filename, notify);
+
+                Meta meta = XmlMeta.GetMeta(newXml);
+                byte[] newYmtBytes = ResourceBuilder.Build(meta, 2);
+
+                File.WriteAllBytes(filename, newYmtBytes);
+
+                RememberSavedFile(filename);
+                SetLogMessage("Saved YMT to path: " + filename);
+                return true;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Failed to save YMT, please report it!\n\nReport it on github or discord: grzybeek#9100\nPlease include YMT you tried to save!", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+        }
+
+        //saving somewhere else makes that file the one ctrl+s writes to from now on
+        private void RememberSavedFile(string filename)
+        {
+            openedFilePath = filename;
+            openedPath = Path.GetDirectoryName(filename);
+            _saveBtn.IsEnabled = true;
+            this.Title = "YMTEditor by grzybeek - editing " + Path.GetFileName(filename);
         }
 
         private void OpenYMT_Click(object sender, RoutedEventArgs e)
@@ -154,24 +235,7 @@ namespace YMTEditor
             bool? result = xmlFile.ShowDialog();
             if (result == true)
             {
-                try
-                {
-                    string filename = xmlFile.FileName;
-                    System.Xml.XmlDocument newXml = XMLHandler.SaveYMT(filename);
-                    
-                    Meta meta = XmlMeta.GetMeta(newXml);
-                    byte[] newYmtBytes = ResourceBuilder.Build(meta, 2);
-
-                    File.WriteAllBytes(filename, newYmtBytes);
-
-                    SetLogMessage("Saved YMT to path: " + filename);
-
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("Failed to save YMT, please report it!\n\nReport it on github or discord: grzybeek#9100\nPlease include YMT you tried to save!", "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            
+                WriteYmt(xmlFile.FileName, true);
             }
         }
 
@@ -187,6 +251,26 @@ namespace YMTEditor
                 {
                     OpenFileFunction(file);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Opens a .ymt/.ymt.xml given on the command line, which is what Windows
+        /// passes when a .ymt file is double clicked.
+        /// </summary>
+        public void OpenFromStartup(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                BuildFromFolder(path);
+            }
+            else if (File.Exists(path))
+            {
+                OpenFileFunction(path);
+            }
+            else
+            {
+                MessageBox.Show("Can't find:\n" + path, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -212,6 +296,8 @@ namespace YMTEditor
 
                     fullName = Path.GetFileNameWithoutExtension(filePath);
                     openedPath = Path.GetDirectoryName(filePath);
+                    openedFilePath = filePath;
+                    _saveBtn.IsEnabled = true;
 
                     this.Title = "YMTEditor by grzybeek - editing " + fullName + ".ymt";
                 }
@@ -234,6 +320,8 @@ namespace YMTEditor
                     fullName = Path.GetFileNameWithoutExtension(filePath); //removes .xml
                     fullName = Path.GetFileNameWithoutExtension(fullName); //removes .ymt
                     openedPath = Path.GetDirectoryName(filePath);
+                    openedFilePath = filePath;
+                    _saveBtn.IsEnabled = true;
 
                     this.Title = "YMTEditor by grzybeek - editing " + fullName + ".ymt.xml";
                 }
@@ -964,6 +1052,236 @@ namespace YMTEditor
             }
         }
 
+        private void BuildFromFolder_Click(object sender, RoutedEventArgs e)
+        {
+            using (System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog())
+            {
+                dialog.Description = "Pick the ped folder with the .ydd/.ytd files (sub-folders are included)";
+                dialog.ShowNewFolderButton = false;
+                if (!string.IsNullOrEmpty(openedPath))
+                {
+                    dialog.SelectedPath = openedPath;
+                }
+
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    BuildFromFolder(dialog.SelectedPath);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Fills the whole editor from the names of the files in a ped folder, instead
+        /// of adding every drawable and texture by hand.
+        /// </summary>
+        public void BuildFromFolder(string folder)
+        {
+            PedFolderScanner.ScanResult scan;
+            try
+            {
+                scan = PedFolderScanner.ScanFolder(folder);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Can't read that folder:\n\n" + ex.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (scan.Peds.Count == 0)
+            {
+                MessageBox.Show("No ped clothing found in:\n" + folder
+                    + "\n\nExpected files like name^jbib_000_u.ydd and name^jbib_diff_000_a_uni.ytd.",
+                    "Nothing found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            PedFolderScanner.ScanPed ped = scan.Peds[0];
+            if (scan.Peds.Count > 1)
+            {
+                ChoosePedWindow chooser = new ChoosePedWindow(scan.Peds) { Owner = this };
+                chooser.ShowDialog();
+                if (chooser.Chosen == null)
+                {
+                    return;
+                }
+                ped = chooser.Chosen;
+            }
+
+            PedFolderScanner.PedLayout layout = PedFolderScanner.Resolve(ped);
+            ApplyLayout(layout);
+
+            openedPath = folder;
+            openedFilePath = null; //nothing was opened, so ctrl+s will ask where to save it
+            SetLogMessage("Built " + (string.IsNullOrEmpty(layout.Name) ? "ymt" : layout.Name + ".ymt") + " from " + folder);
+            ShowBuildSummary(layout, scan);
+        }
+
+        private void ApplyLayout(PedFolderScanner.PedLayout layout)
+        {
+            ClearEverything();
+
+            foreach (ComponentData comp in layout.Components)
+            {
+                Components.Add(comp);
+                MenuItem item = (MenuItem)_componentsMenu.FindName(comp.compType);
+                if (item != null)
+                {
+                    item.IsChecked = true;
+                }
+            }
+
+            foreach (PropData prop in layout.Props)
+            {
+                Props.Add(prop);
+                MenuItem item = (MenuItem)_propsMenu.FindName(prop.propType);
+                if (item != null)
+                {
+                    item.IsChecked = true;
+                }
+            }
+
+            fullName = layout.Name;
+            dlcName = layout.DlcName;
+            XMLHandler.CPedVariationInfo = dlcName;
+            XMLHandler.dlcName = dlcName;
+            XMLHandler.SetVariationFlags(layout.TextureCount > 0, layout.DrawableCount > 0);
+
+            EnableMenus();
+            this.Title = "YMTEditor by grzybeek - editing " + fullName + ".ymt";
+        }
+
+        private void ShowBuildSummary(PedFolderScanner.PedLayout layout, PedFolderScanner.ScanResult scan)
+        {
+            StringBuilder text = new StringBuilder();
+            text.AppendLine((string.IsNullOrEmpty(layout.Name) ? "(no name^ prefix)" : layout.Name) + ":");
+            text.AppendLine(layout.Components.Count + " components, " + layout.DrawableCount + " drawables, "
+                + layout.TextureCount + " textures, " + layout.PropCount + " props ("
+                + layout.PropTextureCount + " prop textures)");
+
+            int errors = layout.Warnings.Count(w => w.Level == "error");
+            if (errors > 0)
+            {
+                text.AppendLine();
+                text.AppendLine(errors + (errors == 1 ? " problem." : " problems.") + " The ymt still saves, but those "
+                    + "drawables won't show correctly in game until the files are fixed.");
+            }
+
+            if (layout.Warnings.Count > 0)
+            {
+                text.AppendLine();
+                foreach (PedFolderScanner.Warning w in layout.Warnings.Take(25))
+                {
+                    text.AppendLine((w.Level == "error" ? "[!] " : w.Level == "warn" ? "[?] " : "[i] ") + w.Message);
+                }
+                if (layout.Warnings.Count > 25)
+                {
+                    text.AppendLine("...and " + (layout.Warnings.Count - 25) + " more.");
+                }
+            }
+
+            if (scan.Unrecognized.Count > 0)
+            {
+                text.AppendLine();
+                text.AppendLine(scan.Unrecognized.Count + " file(s) look like clothing but aren't named the way GTA "
+                    + "expects, so they were left out:");
+                foreach (string name in scan.Unrecognized.Take(10))
+                {
+                    text.AppendLine("    " + name);
+                }
+            }
+
+            if (string.IsNullOrEmpty(layout.Name))
+            {
+                text.AppendLine();
+                text.AppendLine("These files have no name^ prefix, so the ymt has no name yet. Use File -> Rename, or "
+                    + "name it when saving.");
+            }
+
+            MessageBox.Show(text.ToString(), "Built from folder", MessageBoxButton.OK,
+                errors > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+        }
+
+        //file association: HKCU only, so it needs no admin rights and only affects this user
+        private const string YmtProgId = "YMTEditor.ymt";
+
+        private void AssociateYmt_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string exePath = Assembly.GetExecutingAssembly().Location;
+
+                using (RegistryKey progId = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + YmtProgId))
+                {
+                    progId.SetValue("", "GTA5 Ped YMT");
+                    using (RegistryKey icon = progId.CreateSubKey("DefaultIcon"))
+                    {
+                        icon.SetValue("", "\"" + exePath + "\",0");
+                    }
+                    using (RegistryKey command = progId.CreateSubKey(@"shell\open\command"))
+                    {
+                        command.SetValue("", "\"" + exePath + "\" \"%1\"");
+                    }
+                }
+
+                using (RegistryKey ext = Registry.CurrentUser.CreateSubKey(@"Software\Classes\.ymt"))
+                {
+                    //remember what .ymt pointed at before, so removing the association can put it back
+                    object previous = ext.GetValue("");
+                    if (previous != null && previous.ToString() != YmtProgId && ext.GetValue("YMTEditor.Backup") == null)
+                    {
+                        ext.SetValue("YMTEditor.Backup", previous.ToString());
+                    }
+                    ext.SetValue("", YmtProgId);
+                }
+
+                SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); //tell explorer to refresh
+
+                MessageBox.Show(".ymt files now open in YMTEditor when you double click them.\n\n"
+                    + "If Windows still opens something else, it is remembering a choice you made before: "
+                    + "right click a .ymt -> Open with -> Choose another app -> YMTEditor -> Always.",
+                    "Done", MessageBoxButton.OK, MessageBoxImage.Information);
+                SetLogMessage("Associated .ymt files with YMTEditor");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Couldn't set the file association:\n\n" + ex.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void UnassociateYmt_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                using (RegistryKey ext = Registry.CurrentUser.OpenSubKey(@"Software\Classes\.ymt", true))
+                {
+                    if (ext != null)
+                    {
+                        object backup = ext.GetValue("YMTEditor.Backup");
+                        object current = ext.GetValue("");
+                        if (current != null && current.ToString() == YmtProgId)
+                        {
+                            //put back whatever opened .ymt files before, or clear it
+                            ext.SetValue("", backup != null ? backup.ToString() : "");
+                        }
+                        ext.DeleteValue("YMTEditor.Backup", false);
+                    }
+                }
+                Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + YmtProgId, false);
+
+                SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
+
+                MessageBox.Show(".ymt files don't open in YMTEditor anymore.", "Done", MessageBoxButton.OK, MessageBoxImage.Information);
+                SetLogMessage("Removed the .ymt file association");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Couldn't remove the file association:\n\n" + ex.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        [System.Runtime.InteropServices.DllImport("shell32.dll")]
+        private static extern void SHChangeNotify(int eventId, int flags, IntPtr item1, IntPtr item2);
+
         private void ClearEverything()
         {
             var allItemsComps = _componentsMenu.Items.Cast<MenuItem>().ToArray();
@@ -985,6 +1303,7 @@ namespace YMTEditor
 
         private void EnableMenus()
         {
+            _saveBtn.IsEnabled = true;
             _renameButton.IsEnabled = true;
             _renameButton.ToolTip = "Change current dlc name";
 

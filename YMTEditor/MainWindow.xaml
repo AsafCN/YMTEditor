@@ -7,6 +7,12 @@
         xmlns:local="clr-namespace:YMTEditor"
         mc:Ignorable="d"
         Title="YMTEditor by grzybeek" Height="600" Width="900" MinWidth="750" MinHeight="250" Icon="ymteditor.ico">
+    <Window.InputBindings>
+        <KeyBinding Key="S" Modifiers="Ctrl" Command="local:MainWindow.SaveCommand" />
+    </Window.InputBindings>
+    <Window.CommandBindings>
+        <CommandBinding Command="local:MainWindow.SaveCommand" Executed="SaveCommand_Executed" />
+    </Window.CommandBindings>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <Menu.ItemsPanel>
@@ -19,13 +25,22 @@
                 <MenuItem Header="_New" Click="OpenNEW_Click" />
                 <MenuItem Name="RenameBtn" Header="_Rename" Click="Rename_Click" IsEnabled="False" />
                 <Separator />
+                <MenuItem Name="BuildFromFolderBtn" Header="_Build from ped folder..." Click="BuildFromFolder_Click"
+                          ToolTip="Read a ped folder's .ydd/.ytd names and fill in every drawable and texture" />
+                <Separator />
                 <MenuItem Header="_Open (YMT)" Click="OpenYMT_Click"/>
-                <MenuItem Header="_Save (YMT)" Click="SaveYMT_Click" />
+                <MenuItem Name="SaveBtn" Header="_Save" InputGestureText="Ctrl+S" Click="Save_Click" IsEnabled="False"
+                          ToolTip="Save back to the opened file" />
+                <MenuItem Header="Save _As (YMT)" Click="SaveYMT_Click" />
                 <Separator />
                 <MenuItem Header="_Open (XML)" Click="OpenXML_Click"/>
-                <MenuItem Header="_Save (XML)" Click="SaveXML_Click" />
+                <MenuItem Header="Save As (_XML)" Click="SaveXML_Click" />
                 <Separator />
                 <MenuItem Name="CreatureGen" Header="_Generate CreatureMetadata" Click="GenerateCreature_Click" IsEnabled="False" />
+                <Separator />
+                <MenuItem Header="Open .ymt files _with YMTEditor" Click="AssociateYmt_Click"
+                          ToolTip="Make double-clicking a .ymt file open it in YMTEditor" />
+                <MenuItem Header="Stop opening .ymt files with YMTEditor" Click="UnassociateYmt_Click" />
             </MenuItem>
             <MenuItem Name="ComponentsMenu" Header="_Components" IsEnabled="False" ToolTipService.ShowOnDisabled="True" ToolTip="Open XML/YMT file to edit components" >
                 <MenuItem Name="head" Header="HEAD" Click="ComponentsMenu_Click" IsChecked="False" IsCheckable="True" StaysOpenOnClick="true"/>

@@ -1,0 +1,27 @@
+﻿<Window x:Class="YMTEditor.ChoosePedWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:YMTEditor"
+        mc:Ignorable="d"
+        Title="Choose ped" Height="220" Width="460" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Label Grid.Row="0" FontWeight="Bold">This folder holds more than one ped:</Label>
+        <TextBlock Grid.Row="1" Margin="5,0,0,8" TextWrapping="Wrap" Foreground="Gray">
+            Each name^ prefix in the file names is its own ymt. Pick the one to build.
+        </TextBlock>
+        <ListBox Grid.Row="2" Name="pedList" Margin="5,0,0,10" SelectedIndex="0" />
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="70" Height="25" Margin="0,0,8,0" Content="Cancel" IsCancel="True" Click="ButtonCancel_Click"/>
+            <Button Width="70" Height="25" Content="Build" IsDefault="True" Click="ButtonBuild_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
