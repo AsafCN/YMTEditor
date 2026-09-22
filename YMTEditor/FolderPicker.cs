@@ -43,10 +43,18 @@ namespace YMTEditor
 
             if (!string.IsNullOrEmpty(startFolder) && System.IO.Directory.Exists(startFolder))
             {
-                IShellItem start;
-                if (SHCreateItemFromParsingName(startFolder, IntPtr.Zero, typeof(IShellItem).GUID, out start) == 0)
+                try
                 {
-                    dialog.SetFolder(start);
+                    IShellItem start;
+                    if (SHCreateItemFromParsingName(startFolder, IntPtr.Zero, typeof(IShellItem).GUID, out start) == 0
+                        && start != null)
+                    {
+                        dialog.SetFolder(start);
+                    }
+                }
+                catch (Exception)
+                {
+                    //not being able to start in that folder is no reason to give up on the dialog
                 }
             }
 
@@ -67,8 +75,14 @@ namespace YMTEditor
         private const uint FosForceFileSystem = 0x00000040;
         private const uint SigdnFileSysPath = 0x80058000;
 
+        //riid is a REFIID: it has to arrive as a pointer to the guid. Passing the guid
+        //by value reads whatever follows it as the pointer, which kills the process.
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern int SHCreateItemFromParsingName(string path, IntPtr bc, Guid riid, out IShellItem item);
+        private static extern int SHCreateItemFromParsingName(
+            [MarshalAs(UnmanagedType.LPWStr)] string path,
+            IntPtr bc,
+            [MarshalAs(UnmanagedType.LPStruct)] Guid riid,
+            [MarshalAs(UnmanagedType.Interface)] out IShellItem item);
 
         [ComImport, Guid("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7")]
         private class FileOpenDialogRCW { }
