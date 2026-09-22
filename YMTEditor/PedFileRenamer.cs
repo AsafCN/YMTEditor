@@ -70,14 +70,26 @@ namespace YMTEditor
             public int ProblemCount { get { return Items.Count(i => !string.IsNullOrEmpty(i.Problem)); } }
         }
 
+        /// <summary>Everything in a folder.</summary>
         public static Preview Build(string folder, Options options)
         {
-            Preview preview = new Preview();
-            string[] paths = Directory.GetFiles(folder, "*",
-                options.Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+            return Build(Directory.GetFiles(folder, "*",
+                options.Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly), options);
+        }
 
-            foreach (string path in paths.OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+        /// <summary>A given set of files, which may sit in different folders.</summary>
+        public static Preview Build(IEnumerable<string> paths, Options options)
+        {
+            Preview preview = new Preview();
+
+            foreach (string path in paths.Distinct(StringComparer.OrdinalIgnoreCase)
+                                         .OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
             {
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
                 string name = Path.GetFileName(path);
                 string ext = Path.GetExtension(name).ToLowerInvariant();
                 if (options.ClothingOnly && ext != ".ydd" && ext != ".ytd" && ext != ".yld")
@@ -90,6 +102,32 @@ namespace YMTEditor
 
             FlagProblems(preview);
             return preview;
+        }
+
+        /// <summary>Dropped paths, with folders expanded into the files inside them.</summary>
+        public static List<string> ExpandDrop(IEnumerable<string> dropped, bool recursive)
+        {
+            List<string> files = new List<string>();
+            foreach (string path in dropped)
+            {
+                try
+                {
+                    if (Directory.Exists(path))
+                    {
+                        files.AddRange(Directory.GetFiles(path, "*",
+                            recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly));
+                    }
+                    else if (File.Exists(path))
+                    {
+                        files.Add(path);
+                    }
+                }
+                catch (Exception)
+                {
+                    //an unreadable folder just contributes nothing
+                }
+            }
+            return files;
         }
 
         private static string Apply(string path, string name, Options o)
@@ -237,12 +275,12 @@ namespace YMTEditor
             return items.Count;
         }
 
-        /// <summary>The ped names found in a folder, to offer as the "rename ped" starting point.</summary>
-        public static List<string> PedNames(string folder)
+        /// <summary>The ped names in these files, to offer as the "rename ped" starting point.</summary>
+        public static List<string> PedNames(IEnumerable<string> paths)
         {
             try
             {
-                return PedFolderScanner.ScanFolder(folder).Peds
+                return PedFolderScanner.Scan(paths).Peds
                     .Where(p => !string.IsNullOrEmpty(p.Name))
                     .Select(p => p.Name).ToList();
             }

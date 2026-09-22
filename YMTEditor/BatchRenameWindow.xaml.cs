@@ -7,12 +7,15 @@ using System.Windows;
 namespace YMTEditor
 {
     /// <summary>
-    /// Batch renaming with a live preview. Every rule is optional and nothing touches the
-    /// disk until "Rename the files" is pressed, with clashes shown in the preview first.
+    /// Batch renaming with a live preview. Files come from a folder, from the file picker,
+    /// or by dropping them on the window, so it works as a plain renamer as well as a ped
+    /// aware one. Every rule is optional and nothing touches the disk until "Rename the
+    /// files" is pressed, with clashes shown in the preview first.
     /// </summary>
     public partial class BatchRenameWindow : Window
     {
-        private string _folder;
+        private string _folder;            // set when a whole folder is the source
+        private List<string> _files;       // set when dropped/picked files are the source
         private PedFileRenamer.Preview _preview;
         private bool _loaded;
 
@@ -37,31 +40,131 @@ namespace YMTEditor
             {
                 SetFolder(startFolder);
             }
+            else
+            {
+                UpdatePreview();
+            }
         }
+
+        #region where the files come from
 
         private void PickFolder_Click(object sender, RoutedEventArgs e)
         {
-            string folder = FolderPicker.Pick(this, "Pick the folder with the files to rename", _folder);
+            string folder = FolderPicker.Pick(this, "Pick the folder with the files to rename", CurrentFolder());
             if (!string.IsNullOrEmpty(folder))
             {
                 SetFolder(folder);
             }
         }
 
+        private void PickFiles_Click(object sender, RoutedEventArgs e)
+        {
+            Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Pick the files to rename",
+                Multiselect = true,
+                Filter = "All files (*.*)|*.*",
+                InitialDirectory = CurrentFolder() ?? "",
+            };
+            if (dialog.ShowDialog(this) == true)
+            {
+                SetFiles(dialog.FileNames);
+            }
+        }
+
+        private void Window_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void Window_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                return;
+            }
+            e.Handled = true;
+
+            string[] dropped = (string[])e.Data.GetData(DataFormats.FileDrop);
+            //one folder on its own behaves like picking it, so "include sub-folders" keeps working
+            if (dropped.Length == 1 && Directory.Exists(dropped[0]))
+            {
+                SetFolder(dropped[0]);
+                return;
+            }
+
+            List<string> files = PedFileRenamer.ExpandDrop(dropped, recursiveCheck.IsChecked == true);
+            if (files.Count == 0)
+            {
+                MessageBox.Show(this, "Nothing to rename in what was dropped.", "Batch rename",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            SetFiles(files);
+        }
+
         private void SetFolder(string folder)
         {
             _folder = folder;
+            _files = null;
             folderBox.Text = folder;
+            RefreshPedNames();
+            UpdatePreview();
+        }
 
-            //offer the peds that are actually in there as the rename starting point
-            List<string> peds = PedFileRenamer.PedNames(folder);
+        private void SetFiles(IEnumerable<string> files)
+        {
+            _files = files.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            _folder = null;
+
+            int folders = _files.Select(Path.GetDirectoryName)
+                                .Distinct(StringComparer.OrdinalIgnoreCase).Count();
+            folderBox.Text = _files.Count + " file(s)"
+                + (folders == 1 ? " in " + Path.GetDirectoryName(_files[0]) : " from " + folders + " folders");
+
+            RefreshPedNames();
+            UpdatePreview();
+        }
+
+        /// <summary>The folder to start dialogs in.</summary>
+        private string CurrentFolder()
+        {
+            if (!string.IsNullOrEmpty(_folder))
+            {
+                return _folder;
+            }
+            return _files != null && _files.Count > 0 ? Path.GetDirectoryName(_files[0]) : null;
+        }
+
+        //offer the peds that are actually in the set as the rename starting point
+        private void RefreshPedNames()
+        {
+            List<string> paths;
+            try
+            {
+                paths = _files ?? Directory.GetFiles(_folder, "*",
+                    recursiveCheck.IsChecked == true ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).ToList();
+            }
+            catch (Exception)
+            {
+                paths = new List<string>();
+            }
+
+            string previous = pedNameFrom.Text;
+            List<string> peds = PedFileRenamer.PedNames(paths);
             pedNameFrom.ItemsSource = peds;
-            if (peds.Count > 0)
+            if (peds.Contains(previous))
+            {
+                pedNameFrom.Text = previous;
+            }
+            else if (peds.Count > 0)
             {
                 pedNameFrom.SelectedIndex = 0;
             }
-            UpdatePreview();
         }
+
+        #endregion
 
         private void Option_Changed(object sender, RoutedEventArgs e)
         {
@@ -110,26 +213,32 @@ namespace YMTEditor
 
         private void UpdatePreview()
         {
-            if (string.IsNullOrEmpty(_folder))
+            if (string.IsNullOrEmpty(_folder) && (_files == null || _files.Count == 0))
             {
-                status.Text = "Pick a folder to start.";
+                previewList.ItemsSource = null;
+                dropHint.Visibility = Visibility.Visible;
+                status.Text = "Drop files or a folder here, or use the buttons above.";
                 applyButton.IsEnabled = false;
                 return;
             }
 
             try
             {
-                _preview = PedFileRenamer.Build(_folder, ReadOptions());
+                PedFileRenamer.Options options = ReadOptions();
+                _preview = _files != null
+                    ? PedFileRenamer.Build(_files, options)
+                    : PedFileRenamer.Build(_folder, options);
             }
             catch (Exception ex)
             {
                 previewList.ItemsSource = null;
-                status.Text = "Can't read that folder: " + ex.Message;
+                status.Text = "Can't read that: " + ex.Message;
                 applyButton.IsEnabled = false;
                 return;
             }
 
             previewList.ItemsSource = _preview.Changes.Select(i => i.ToString()).ToList();
+            dropHint.Visibility = _preview.ChangedCount == 0 ? Visibility.Visible : Visibility.Collapsed;
 
             int changed = _preview.ChangedCount;
             int problems = _preview.ProblemCount;
@@ -149,7 +258,7 @@ namespace YMTEditor
             }
 
             int count = _preview.Changes.Count(i => string.IsNullOrEmpty(i.Problem));
-            if (MessageBox.Show(this, "Rename " + count + " file(s) in\n" + _folder + "?\n\nThis changes the files on disk.",
+            if (MessageBox.Show(this, "Rename " + count + " file(s)?\n\nThis changes the files on disk.",
                     "Batch rename", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK)
             {
                 return;
@@ -157,34 +266,57 @@ namespace YMTEditor
 
             try
             {
-                WriteLog(_preview);
+                WriteLogs(_preview);
                 int done = PedFileRenamer.ApplyRenames(_preview);
                 Renamed = Renamed || done > 0;
+
+                //the set was named before the rename, so follow the files to their new names
+                if (_files != null)
+                {
+                    Dictionary<string, string> moved = _preview.Changes
+                        .Where(i => string.IsNullOrEmpty(i.Problem))
+                        .ToDictionary(i => i.Path,
+                                      i => Path.Combine(Path.GetDirectoryName(i.Path), i.NewName),
+                                      StringComparer.OrdinalIgnoreCase);
+                    _files = _files.Select(f => moved.ContainsKey(f) ? moved[f] : f).ToList();
+                }
+
                 MessageBox.Show(this, "Renamed " + done + " file(s).", "Batch rename",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(this, "Renaming stopped:\n\n" + ex.Message
-                    + "\n\nSome files may be left with a .renaming extension in\n" + _folder,
+                    + "\n\nSome files may be left with a .renaming extension.",
                     "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
+            RefreshPedNames();
             UpdatePreview();
         }
 
-        //what was renamed, so it can be undone by hand if needed
-        private void WriteLog(PedFileRenamer.Preview preview)
+        //what was renamed, written into each folder that changed, so it can be undone by hand
+        private void WriteLogs(PedFileRenamer.Preview preview)
         {
-            string log = Path.Combine(_folder, "rename-log.txt");
-            using (StreamWriter writer = new StreamWriter(log, true))
+            foreach (var folder in preview.Changes.Where(i => string.IsNullOrEmpty(i.Problem))
+                                                  .GroupBy(i => Path.GetDirectoryName(i.Path)))
             {
-                writer.WriteLine("# YMTEditor batch rename on " + DateTime.Now);
-                foreach (PedFileRenamer.Item item in preview.Changes.Where(i => string.IsNullOrEmpty(i.Problem)))
+                try
                 {
-                    writer.WriteLine(item.OldName + "  ->  " + item.NewName);
+                    using (StreamWriter writer = new StreamWriter(Path.Combine(folder.Key, "rename-log.txt"), true))
+                    {
+                        writer.WriteLine("# YMTEditor batch rename on " + DateTime.Now);
+                        foreach (PedFileRenamer.Item item in folder)
+                        {
+                            writer.WriteLine(item.OldName + "  ->  " + item.NewName);
+                        }
+                        writer.WriteLine();
+                    }
                 }
-                writer.WriteLine();
+                catch (Exception)
+                {
+                    //a read-only folder shouldn't stop the renaming itself
+                }
             }
         }
 

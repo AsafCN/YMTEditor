@@ -30,8 +30,10 @@ named the way GTA expects.
 A folder can also be dropped straight onto YMTEditor.exe, or passed on the command line.
 
 ### Batch rename
-`File -> Batch rename files...` renames a whole folder at once, with a live preview and
-clashes flagged before anything happens. Beside the plain text rules there are ped aware
+`File -> Batch rename files...` renames files in bulk, with a live preview and clashes
+flagged before anything happens. Drag files or folders onto the window, pick them with the
+buttons, or point it at a folder - files from several folders at once are fine, and it works
+on any file, so it doubles as a plain renamer. Beside the plain text rules there are ped aware
 ones, which is where the time goes:
 
 | Rule | Does |

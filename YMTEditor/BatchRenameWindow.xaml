@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:YMTEditor"
         mc:Ignorable="d"
         Title="Batch rename" Height="660" Width="900" MinWidth="700" MinHeight="520"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        AllowDrop="True" PreviewDragOver="Window_DragOver" PreviewDrop="Window_Drop">
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -16,16 +17,19 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- folder -->
+        <!-- what to rename: a folder, or whatever was dropped in -->
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Folder:" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <TextBox Grid.Column="1" Name="folderBox" IsReadOnly="True" />
-            <Button Grid.Column="2" Content="Pick folder..." Margin="8,0,0,0" Click="PickFolder_Click" />
+            <TextBlock Grid.Column="0" Text="Files:" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBox Grid.Column="1" Name="folderBox" IsReadOnly="True"
+                     ToolTip="Drag files or folders anywhere on this window" />
+            <Button Grid.Column="2" Content="Pick files..." Margin="8,0,0,0" Click="PickFiles_Click" />
+            <Button Grid.Column="3" Content="Pick folder..." Margin="8,0,0,0" Click="PickFolder_Click" />
         </Grid>
 
         <!-- rules -->
@@ -132,13 +136,19 @@
                               Checked="Option_Changed" Unchecked="Option_Changed"
                               ToolTip="Off: .ymt, .yft and .meta are renamed too, which is what you want when renaming a ped" />
                     <CheckBox Name="recursiveCheck" Content="Include sub-folders" IsChecked="True"
-                              Checked="Option_Changed" Unchecked="Option_Changed" />
+                              Checked="Option_Changed" Unchecked="Option_Changed"
+                              ToolTip="Applies to a picked or dropped folder" />
                 </StackPanel>
             </StackPanel>
         </Border>
 
         <!-- preview -->
-        <ListBox Grid.Row="2" Name="previewList" Margin="0,12,0,0" FontFamily="Consolas" FontSize="12" />
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <ListBox Name="previewList" FontFamily="Consolas" FontSize="12" />
+            <TextBlock Name="dropHint" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="#FF64748B" FontSize="14" TextAlignment="Center"
+                       Text="Drag files or folders here&#x0a;(or use the buttons above)" />
+        </Grid>
 
         <TextBlock Grid.Row="3" Name="status" Margin="2,8,0,0" Foreground="#FF94A3B8" TextWrapping="Wrap" />
 
