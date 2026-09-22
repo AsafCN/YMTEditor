@@ -108,7 +108,7 @@
                 </ItemsPanelTemplate>
             </StatusBar.ItemsPanel>
             <StatusBarItem Grid.Column="0">
-                <TextBlock Name="logBar" Foreground="Red" FontWeight="Bold" Text="" FontSize="12" Height="18" VerticalAlignment="Center" Padding="8,0,0,0"></TextBlock>
+                <TextBlock Name="logBar" Foreground="{StaticResource TextMuted}" FontWeight="SemiBold" Text="" FontSize="12" Height="18" VerticalAlignment="Center" Padding="8,0,0,0"></TextBlock>
             </StatusBarItem>
             <StatusBarItem Grid.Column="1" HorizontalAlignment="Right" Padding="5,0,10,2">
                 <Hyperlink NavigateUri="https://discord.gg/xUXbrupFhN" RequestNavigate="Hyperlink_RequestNavigate" >Official Discord</Hyperlink>
@@ -146,7 +146,7 @@
                                     <StackPanel>
                                         <Expander Grid.Row="0">
                                             <Expander.Header >
-                                                <TextBlock Background="LightGray" FontSize="20" Foreground="Black" Text="{Binding compHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
+                                                <TextBlock Background="{StaticResource Accent}" FontSize="16" FontWeight="SemiBold" Foreground="White" Padding="10,3" Text="{Binding compHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
                                             </Expander.Header>
                                             <GroupBox>
                                                 <GroupBox.Header>
@@ -164,10 +164,11 @@
                                                             <ItemsControl.ItemTemplate>
                                                                 <DataTemplate>
                                                                     <Grid Margin="0,0,0,5">
-                                                                        <GroupBox>
+                                                                        <GroupBox Background="{StaticResource SurfaceRaised}">
                                                                             <GroupBox.Header>
                                                                                 <StackPanel Orientation="Horizontal">
-                                                                                    <TextBlock FontWeight="Bold" Text="{Binding drawableIndex, StringFormat=' {0:0#,#}'}"></TextBlock>
+                                                                                    <TextBlock FontWeight="Bold" FontSize="13" Foreground="{StaticResource Text}" VerticalAlignment="Center" Text="{Binding drawableIndex, StringFormat='{}{0:0#,#}'}"></TextBlock>
+                                                                                    <Button Content="Remove" FontSize="10" Padding="8,2" Margin="12,0,0,0" VerticalAlignment="Center" Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type Expander}, AncestorLevel=1}, Path=Header.Text, Mode=TwoWay}" DataContext="{Binding drawableIndex}" Click="Button_Click_RemoveComponent"></Button>
                                                                                 </StackPanel>
                                                                             </GroupBox.Header>
                                                                             <GroupBox.Content>
@@ -184,7 +185,6 @@
                                                                                         <ColumnDefinition Width="*"/>
                                                                                     </Grid.ColumnDefinitions>
                                                                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding drawableTextureCount, StringFormat='Textures: {0}'}"></TextBlock>
-                                                                                    <Button Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" Margin="40, -35, 0, 0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Content="Remove" Height="18" FontSize="10" Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type Expander}, AncestorLevel=1}, Path=Header.Text, Mode=TwoWay}" DataContext="{Binding drawableIndex}" Click="Button_Click_RemoveComponent"></Button>
                                                                                     <StackPanel Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type Expander}, AncestorLevel=1}, Path=Header.Text, Mode=TwoWay}" Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
                                                                                         <TextBlock ToolTip="Don't edit propMask if you don't know what are you doing!" Text="propMask: "></TextBlock>
                                                                                         <xctk:IntegerUpDown Minimum="1" Tag="{Binding drawableIndex}" ValueChanged="propMask_Changed" MaxHeight="25" Width="45" ToolTip="Don't edit propMask if you don't know what are you doing!" Value="{Binding drawablePropMask}" />
@@ -200,7 +200,7 @@
                                                                                             <ComboBoxItem Content="True" />
                                                                                         </ComboBox>
                                                                                     </StackPanel>
-                                                                                    <Expander Grid.Row="1" Grid.Column="0" Margin="0, 0, 0, 5" Header="View textures">
+                                                                                    <Expander Grid.Row="1" Grid.Column="0" Margin="0,0,0,2" Header="View textures">
                                                                                         <Grid>
                                                                                             <Grid.RowDefinitions>
                                                                                                 <RowDefinition Height="Auto" />
@@ -386,7 +386,7 @@
                                     <StackPanel>
                                         <Expander Grid.Row="0">
                                             <Expander.Header>
-                                                <TextBlock Background="LightGray" FontSize="20" Foreground="Black" Text="{Binding propHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
+                                                <TextBlock Background="{StaticResource Accent}" FontSize="16" FontWeight="SemiBold" Foreground="White" Padding="10,3" Text="{Binding propHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
                                             </Expander.Header>
                                             <GroupBox>
                                                 <GroupBox.Header>
@@ -404,10 +404,11 @@
                                                             <ItemsControl.ItemTemplate>
                                                                 <DataTemplate>
                                                                     <Grid Margin="0,0,0,5">
-                                                                        <GroupBox>
+                                                                        <GroupBox Background="{StaticResource SurfaceRaised}">
                                                                             <GroupBox.Header>
                                                                                 <StackPanel Orientation="Horizontal">
-                                                                                    <TextBlock FontWeight="Bold" Text="{Binding propIndex, StringFormat=' {0:0#,#}'}"></TextBlock>
+                                                                                    <TextBlock FontWeight="Bold" FontSize="13" Foreground="{StaticResource Text}" VerticalAlignment="Center" Text="{Binding propIndex, StringFormat='{}{0:0#,#}'}"></TextBlock>
+                                                                                    <Button Content="Remove" FontSize="10" Padding="8,2" Margin="12,0,0,0" VerticalAlignment="Center" Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type Expander}, AncestorLevel=1}, Path=Header.Text, Mode=TwoWay}" DataContext="{Binding propIndex}" Click="Button_Click_RemoveProp"></Button>
                                                                                 </StackPanel>
                                                                             </GroupBox.Header>
                                                                             <GroupBox.Content>
@@ -423,7 +424,6 @@
                                                                                         <ColumnDefinition Width="*"/>
                                                                                     </Grid.ColumnDefinitions>
                                                                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding propTextureCount, StringFormat='Textures: {0}'}"></TextBlock>
-                                                                                    <Button Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" Margin="40, -35, 0, 0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Content="Remove" Height="18" FontSize="10" Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type Expander}, AncestorLevel=1}, Path=Header.Text, Mode=TwoWay}" DataContext="{Binding propIndex}" Click="Button_Click_RemoveProp"></Button>
                                                                                     <Grid Grid.Row="1" Grid.ColumnSpan="4">
                                                                                         <Grid.RowDefinitions>
                                                                                             <RowDefinition Height="*" />
@@ -432,7 +432,7 @@
                                                                                             <ColumnDefinition Width="*"/>
                                                                                             <ColumnDefinition Width="2*"/>
                                                                                         </Grid.ColumnDefinitions>
-                                                                                        <Expander Grid.Row="0" Grid.Column="0" Margin="0, 5, 0, 5" Header="View textures">
+                                                                                        <Expander Grid.Row="0" Grid.Column="0" Margin="0,2,0,2" Header="View textures">
                                                                                             <Grid>
                                                                                                 <Grid.RowDefinitions>
                                                                                                     <RowDefinition Height="Auto" />

@@ -34,6 +34,13 @@ A folder can also be dropped straight onto YMTEditor.exe, or passed on the comma
 Save dialog every time. `Save As (YMT)` / `Save As (XML)` still ask for a path, and saving
 somewhere else makes that file the one Ctrl+S writes to from then on.
 
+### Dark theme
+The whole editor is restyled: dark slate background, flat rounded cards, purple accents,
+slim scroll bars and a dark title bar. It is one implicit-style dictionary
+(`Themes/Modern.xaml`) merged in `App.xaml`, so no window had to be rebuilt for it, and
+each drawable's **Remove** button now sits in the card header instead of being placed with
+a negative margin.
+
 ### Double-clicking a .ymt opens it
 The editor now opens whatever file it was started with, so a .ymt opens with its contents
 loaded instead of an empty editor. `File -> Open .ymt files with YMTEditor` registers the file

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:YMTEditor"
         mc:Ignorable="d"
-        Title="Create new YMT..." Height="300" Width="500">
+        Title="Create new YMT..." Height="340" Width="520">
     <Grid Margin="10">
         <Grid>
             <Grid.ColumnDefinitions>
