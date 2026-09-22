@@ -144,9 +144,10 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel>
-                                        <Expander Grid.Row="0">
+                                        <Expander Grid.Row="0" Style="{StaticResource SectionExpander}"
+                                                  ToolTip="{Binding slotLabel, StringFormat='{}{0}'}">
                                             <Expander.Header >
-                                                <TextBlock Background="{StaticResource Accent}" FontSize="16" FontWeight="SemiBold" Foreground="White" Padding="10,3" Text="{Binding compHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
+                                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="White" Text="{Binding compHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
                                             </Expander.Header>
                                             <GroupBox>
                                                 <GroupBox.Header>
@@ -384,9 +385,10 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel>
-                                        <Expander Grid.Row="0">
+                                        <Expander Grid.Row="0" Style="{StaticResource SectionExpander}"
+                                                  ToolTip="{Binding slotLabel, StringFormat='{}{0}'}">
                                             <Expander.Header>
-                                                <TextBlock Background="{StaticResource Accent}" FontSize="16" FontWeight="SemiBold" Foreground="White" Padding="10,3" Text="{Binding propHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
+                                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="White" Text="{Binding propHeader}" HorizontalAlignment="{Binding HorizontalAlignment, RelativeSource={RelativeSource AncestorType=ContentPresenter}, Mode=OneWayToSource}" />
                                             </Expander.Header>
                                             <GroupBox>
                                                 <GroupBox.Header>

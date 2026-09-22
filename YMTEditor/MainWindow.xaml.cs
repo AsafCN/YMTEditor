@@ -166,9 +166,13 @@ namespace YMTEditor
         {
             try
             {
-                XMLHandler.SaveXML(filename, notify);
+                XMLHandler.SaveXML(filename, false);
                 RememberSavedFile(filename);
                 SetLogMessage("Saved XML to path: " + filename);
+                if (notify)
+                {
+                    MessageBox.Show(this, "Saved to: " + filename, "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
                 return true;
             }
             catch (Exception)
@@ -182,7 +186,10 @@ namespace YMTEditor
         {
             try
             {
-                System.Xml.XmlDocument newXml = XMLHandler.SaveYMT(filename, notify);
+                //SaveYMT writes the intermediate xml to this path, and the real ymt bytes
+                //only replace it further down, so the "Saved" box has to wait until the
+                //file on disk is actually a ymt
+                System.Xml.XmlDocument newXml = XMLHandler.SaveYMT(filename, false);
 
                 Meta meta = XmlMeta.GetMeta(newXml);
                 byte[] newYmtBytes = ResourceBuilder.Build(meta, 2);
@@ -191,6 +198,10 @@ namespace YMTEditor
 
                 RememberSavedFile(filename);
                 SetLogMessage("Saved YMT to path: " + filename);
+                if (notify)
+                {
+                    MessageBox.Show(this, "Saved to: " + filename, "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
                 return true;
             }
             catch (Exception)
@@ -1197,7 +1208,7 @@ namespace YMTEditor
                     + "name it when saving.");
             }
 
-            MessageBox.Show(text.ToString(), "Built from folder", MessageBoxButton.OK,
+            MessageBox.Show(this, text.ToString(), "Built from folder", MessageBoxButton.OK,
                 errors > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
         }
 

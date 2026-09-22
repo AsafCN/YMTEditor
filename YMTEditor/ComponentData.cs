@@ -22,6 +22,7 @@ namespace YMTEditor
         }
 
         public string compHeader { get; set; }
+        public string slotLabel { get; set; } //what this slot holds, e.g. jbib -> "shirts, hoodies, jackets"
 
         public ComponentData(string type, int id, int index, ObservableCollection<ComponentDrawable> drawables)
         {
@@ -30,6 +31,7 @@ namespace YMTEditor
             compIndex = index;
             compList = drawables;
             compHeader = compType.ToUpper();
+            slotLabel = YMTTypes.SlotLabel(compType);
         }
 
         public static int GetComponentIndexByID(int number)

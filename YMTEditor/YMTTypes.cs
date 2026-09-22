@@ -1,7 +1,48 @@
-﻿namespace YMTEditor
+﻿using System.Collections.Generic;
+
+namespace YMTEditor
 {
     public class YMTTypes
     {
+        /// <summary>
+        /// What each slot actually holds, shown next to the jbib/accs/... names so they
+        /// don't have to be memorised. Wording follows the Help menu.
+        /// </summary>
+        private static readonly Dictionary<string, string> SlotLabels = new Dictionary<string, string>
+        {
+            { "head", "head models" },
+            { "berd", "masks, beards" },
+            { "hair", "hair" },
+            { "uppr", "torso, arms" },
+            { "lowr", "pants, legs" },
+            { "hand", "bags, backpacks" },
+            { "feet", "shoes" },
+            { "teef", "ties, scarves, necklaces" },
+            { "accs", "undershirts" },
+            { "task", "vests" },
+            { "decl", "decals, stickers" },
+            { "jbib", "shirts, hoodies, jackets" },
+            { "p_head", "hats, helmets" },
+            { "p_eyes", "glasses" },
+            { "p_ears", "earrings" },
+            { "p_mouth", "mouth" },
+            { "p_lhand", "left hand" },
+            { "p_rhand", "right hand" },
+            { "p_lwrist", "watches" },
+            { "p_rwrist", "bracelets" },
+            { "p_hip", "hip" },
+            { "p_lfoot", "left foot" },
+            { "p_rfoot", "right foot" },
+            { "p_ph_l_hand", "left hand (phone)" },
+            { "p_ph_r_hand", "right hand (phone)" },
+        };
+
+        public static string SlotLabel(string slot)
+        {
+            string label;
+            return SlotLabels.TryGetValue((slot ?? "").ToLower(), out label) ? label : "";
+        }
+
         public enum ComponentNumbers
         {
             head = 0,

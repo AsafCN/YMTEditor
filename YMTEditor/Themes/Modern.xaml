@@ -401,6 +401,69 @@
         </Setter>
     </Style>
 
+    <!--
+        Section header for a component/prop (JBIB, ACCS, P_HEAD...). The header itself
+        stays the TextBlock the window puts there, because the code finds which slot was
+        clicked through Header.Text; the rounded pill and the "shirts, hoodies, jackets"
+        label come from this template around it.
+    -->
+    <Style x:Key="SectionExpander" TargetType="{x:Type Expander}">
+        <Setter Property="Margin" Value="0,2,0,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Expander}">
+                    <DockPanel>
+                        <ToggleButton x:Name="toggle" DockPanel.Dock="Top" Focusable="False" HorizontalAlignment="Left"
+                                      IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                                        <Path x:Name="arrow" Data="M 0,0 L 8,5 L 0,10" Stroke="{StaticResource TextMuted}"
+                                              StrokeThickness="1.6" VerticalAlignment="Center" Margin="4,0,8,0"
+                                              RenderTransformOrigin="0.4,0.5" />
+                                        <ContentPresenter VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="arrow" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <RotateTransform Angle="90" />
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Setter TargetName="arrow" Property="Stroke" Value="#FFC084FC" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+
+                            <!-- the toggle's content sits in the Expander's template, so
+                                 ContentSource="Header" resolves against the Expander -->
+                            <StackPanel Orientation="Horizontal">
+                                <Border x:Name="pill" CornerRadius="12" Background="{StaticResource Accent}"
+                                        Padding="14,4" VerticalAlignment="Center">
+                                    <ContentPresenter ContentSource="Header" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock x:Name="label" Margin="10,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextMuted}" FontSize="12"
+                                           Text="{Binding slotLabel}" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ContentPresenter x:Name="content" Margin="16,6,0,4" Visibility="Collapsed" />
+                    </DockPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="content" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=toggle}" Value="True">
+                            <Setter TargetName="pill" Property="Background" Value="{StaticResource AccentHover}" />
+                            <Setter TargetName="label" Property="Foreground" Value="{StaticResource Text}" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- combo box -->
     <Style TargetType="{x:Type ComboBoxItem}">
         <Setter Property="Foreground" Value="{StaticResource Text}" />

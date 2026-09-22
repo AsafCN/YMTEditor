@@ -22,6 +22,7 @@ namespace YMTEditor
         }
 
         public string propHeader { get; set; }
+        public string slotLabel { get; set; } //what this slot holds, e.g. p_eyes -> "glasses"
 
         public PropData(string type, int id, ObservableCollection<PropDrawable> props)
         {
@@ -29,6 +30,7 @@ namespace YMTEditor
             propAnchorId = id;
             propList = props;
             propHeader = type.ToUpper();
+            slotLabel = YMTTypes.SlotLabel(type);
         }
     }
 }
