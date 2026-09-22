@@ -21,7 +21,7 @@
         <ListBox Grid.Row="2" Name="pedList" Margin="5,0,0,10" SelectedIndex="0" />
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Width="70" Height="25" Margin="0,0,8,0" Content="Cancel" IsCancel="True" Click="ButtonCancel_Click"/>
-            <Button Width="70" Height="25" Content="Build" IsDefault="True" Click="ButtonBuild_Click"/>
+            <Button Width="70" Height="25" Name="confirmButton" Content="Build" IsDefault="True" Click="ButtonBuild_Click"/>
         </StackPanel>
     </Grid>
 </Window>

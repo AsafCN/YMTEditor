@@ -11,11 +11,12 @@ namespace YMTEditor
     {
         public PedFolderScanner.ScanPed Chosen;
 
-        public ChoosePedWindow(List<PedFolderScanner.ScanPed> peds)
+        public ChoosePedWindow(List<PedFolderScanner.ScanPed> peds, string actionLabel = "Build")
         {
             InitializeComponent();
             pedList.ItemsSource = peds;
             pedList.SelectedIndex = 0;
+            confirmButton.Content = actionLabel;
         }
 
         private void ButtonBuild_Click(object sender, RoutedEventArgs e)

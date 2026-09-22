@@ -29,6 +29,20 @@ named the way GTA expects.
 
 A folder can also be dropped straight onto YMTEditor.exe, or passed on the command line.
 
+### Sort ped folder
+`File -> Sort ped folder (close numbering gaps)...` renames the files so the numbers run
+without gaps: a component with 001 and 005 ends up with 001 and 002, and a drawable whose
+textures are b, d ends up with a, b.
+
+Numbers **below** the first one in use are left alone, so a component that deliberately
+starts at 001 (an empty 000 being the ped's "none" option) keeps that empty slot instead of
+everything sliding down onto it. Only the folder holding most of the ped is touched, since a
+resource often keeps older copies of the same names in sibling folders.
+
+Nothing is renamed until the preview is confirmed; what happened is written to
+`renumber-log.txt` next to the files, and the ymt is rebuilt from the sorted folder
+afterwards.
+
 ### Save
 `File -> Save` (**Ctrl+S**) writes back to the file you opened, without going through the
 Save dialog every time. `Save As (YMT)` / `Save As (XML)` still ask for a path, and saving

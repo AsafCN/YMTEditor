@@ -1,0 +1,33 @@
+﻿<Window x:Class="YMTEditor.RenumberWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:YMTEditor"
+        mc:Ignorable="d"
+        Title="Sort ped folder" Height="520" Width="760" WindowStartupLocation="CenterOwner">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Name="headline" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Grid.Row="1" Name="folderLine" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="#FF94A3B8" />
+
+        <Border Grid.Row="2" Name="problemsBox" Margin="0,10,0,0" Padding="10,8" CornerRadius="6"
+                Background="#33F87171" BorderBrush="#FFF87171" BorderThickness="1" Visibility="Collapsed">
+            <TextBlock Name="problems" TextWrapping="Wrap" Foreground="#FFFECACA" />
+        </Border>
+
+        <ListBox Grid.Row="3" Name="renameList" Margin="0,12,0,12" FontFamily="Consolas" FontSize="12" />
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="90" Height="28" Margin="0,0,8,0" Content="Cancel" IsCancel="True" Click="Cancel_Click" />
+            <Button Width="150" Height="28" Name="applyButton" Content="Rename the files" IsDefault="True" Click="Apply_Click" />
+        </StackPanel>
+    </Grid>
+</Window>

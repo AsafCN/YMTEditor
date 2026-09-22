@@ -101,7 +101,12 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="ComponentInfo.cs" />
+    <Compile Include="FolderPicker.cs" />
     <Compile Include="PedFolderScanner.cs" />
+    <Compile Include="RenumberWindow.xaml.cs">
+      <DependentUpon>RenumberWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="ChoosePedWindow.xaml.cs">
       <DependentUpon>ChoosePedWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -125,6 +130,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="Themes\Modern.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RenumberWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -1065,19 +1065,11 @@ namespace YMTEditor
 
         private void BuildFromFolder_Click(object sender, RoutedEventArgs e)
         {
-            using (System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog())
+            string folder = FolderPicker.Pick(this,
+                "Pick the ped folder with the .ydd/.ytd files (sub-folders are included)", openedPath);
+            if (!string.IsNullOrEmpty(folder))
             {
-                dialog.Description = "Pick the ped folder with the .ydd/.ytd files (sub-folders are included)";
-                dialog.ShowNewFolderButton = false;
-                if (!string.IsNullOrEmpty(openedPath))
-                {
-                    dialog.SelectedPath = openedPath;
-                }
-
-                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                {
-                    BuildFromFolder(dialog.SelectedPath);
-                }
+                BuildFromFolder(folder);
             }
         }
 
@@ -1121,10 +1113,99 @@ namespace YMTEditor
             PedFolderScanner.PedLayout layout = PedFolderScanner.Resolve(ped);
             ApplyLayout(layout);
 
-            openedPath = folder;
+            //saving should land next to the clothing, not in the resource root above it
+            openedPath = string.IsNullOrEmpty(ped.MainDirectory) ? folder : ped.MainDirectory;
             openedFilePath = null; //nothing was opened, so ctrl+s will ask where to save it
             SetLogMessage("Built " + (string.IsNullOrEmpty(layout.Name) ? "ymt" : layout.Name + ".ymt") + " from " + folder);
             ShowBuildSummary(layout, scan);
+        }
+
+        private void SortFolder_Click(object sender, RoutedEventArgs e)
+        {
+            string folder = FolderPicker.Pick(this,
+                "Pick the ped folder to sort (gaps in the numbering are closed)", openedPath);
+            if (!string.IsNullOrEmpty(folder))
+            {
+                SortFolder(folder);
+            }
+        }
+
+        /// <summary>
+        /// Closes the gaps in a ped folder's numbering (001 and 005 become 001 and 002) by
+        /// renaming the files, then rebuilds the ymt from the sorted folder.
+        /// </summary>
+        public void SortFolder(string folder)
+        {
+            PedFolderScanner.ScanResult scan;
+            try
+            {
+                scan = PedFolderScanner.ScanFolder(folder);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Can't read that folder:\n\n" + ex.Message, "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (scan.Peds.Count == 0)
+            {
+                MessageBox.Show(this, "No ped clothing found in:\n" + folder, "Nothing found",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            PedFolderScanner.ScanPed ped = scan.Peds[0];
+            if (scan.Peds.Count > 1)
+            {
+                ChoosePedWindow chooser = new ChoosePedWindow(scan.Peds, "Sort") { Owner = this };
+                chooser.ShowDialog();
+                if (chooser.Chosen == null)
+                {
+                    return;
+                }
+                ped = chooser.Chosen;
+            }
+
+            PedFolderScanner.RenumberPlan plan = PedFolderScanner.PlanRenumber(folder, ped.Name);
+            plan.PedName = ped.Name;
+
+            RenumberWindow preview = new RenumberWindow(plan) { Owner = this };
+            preview.ShowDialog();
+            if (!preview.Confirmed || plan.Renames.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                WriteRenumberLog(plan);
+                PedFolderScanner.ApplyRenumber(plan);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Renaming stopped:\n\n" + ex.Message
+                    + "\n\nSome files may be left with a .renumbering extension in\n" + plan.Directory,
+                    "Error!", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            SetLogMessage("Sorted " + plan.Renames.Count + " file(s) in " + plan.Directory);
+            BuildFromFolder(folder);
+        }
+
+        //a plain list of what was renamed, so it can be undone by hand if needed
+        private void WriteRenumberLog(PedFolderScanner.RenumberPlan plan)
+        {
+            string log = Path.Combine(plan.Directory, "renumber-log.txt");
+            using (StreamWriter writer = new StreamWriter(log, true))
+            {
+                writer.WriteLine("# YMTEditor sorted " + plan.PedName + " on " + DateTime.Now);
+                foreach (PedFolderScanner.RenameEntry r in plan.Renames)
+                {
+                    writer.WriteLine(Path.GetFileName(r.From) + "  ->  " + Path.GetFileName(r.To));
+                }
+                writer.WriteLine();
+            }
         }
 
         private void ApplyLayout(PedFolderScanner.PedLayout layout)

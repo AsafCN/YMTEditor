@@ -52,6 +52,16 @@ namespace YMTEditor
         private static readonly Regex PropTextureRx = new Regex(
             Prefix + @"(?<slot>" + string.Join("|", PropNames) + @")_diff_(?<num>\d{3})_(?<letter>[a-z])(?:_(?<race>" + string.Join("|", Races) + @"))?\.ytd$", Opts);
 
+        //every clothing name pattern, with whether it belongs to a prop
+        private static readonly Tuple<Regex, bool>[] _PATTERNS =
+        {
+            Tuple.Create(CompModel, false),
+            Tuple.Create(CompTexture, false),
+            Tuple.Create(CompCloth, false),
+            Tuple.Create(PropModel, true),
+            Tuple.Create(PropTextureRx, true),
+        };
+
         #region scanning
 
         internal class ScanDrawable
@@ -67,6 +77,8 @@ namespace YMTEditor
         {
             public string Name;      // the "name^" prefix these files use ("" when they have none)
             public int FileCount;
+            public string MainDirectory; // the folder holding most of this ped, when full paths were scanned
+            internal readonly Dictionary<string, int> DirectoryCounts = new Dictionary<string, int>();
             internal readonly SortedDictionary<int, SortedDictionary<int, ScanDrawable>> Comps =
                 new SortedDictionary<int, SortedDictionary<int, ScanDrawable>>();
             internal readonly SortedDictionary<int, SortedDictionary<int, ScanDrawable>> Props =
@@ -164,6 +176,12 @@ namespace YMTEditor
                     result.Peds.Add(ped);
                 }
                 ped.FileCount++;
+                string directory = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    ped.DirectoryCounts[directory] = ped.DirectoryCounts.ContainsKey(directory)
+                        ? ped.DirectoryCounts[directory] + 1 : 1;
+                }
 
                 string slot = m.Groups["slot"].Value.ToLowerInvariant();
                 int number = int.Parse(m.Groups["num"].Value);
@@ -208,6 +226,13 @@ namespace YMTEditor
 
             result.Peds.RemoveAll(p => p.Comps.Count == 0 && p.Props.Count == 0);
             result.Peds.Sort((a, b) => b.FileCount.CompareTo(a.FileCount));
+            foreach (ScanPed ped in result.Peds)
+            {
+                if (ped.DirectoryCounts.Count > 0)
+                {
+                    ped.MainDirectory = ped.DirectoryCounts.OrderByDescending(kv => kv.Value).First().Key;
+                }
+            }
             return result;
         }
 
@@ -258,6 +283,230 @@ namespace YMTEditor
         {
             Match m = Regex.Match(pedName ?? "", @"^mp_[mf]_freemode_01_(.+)$", RegexOptions.IgnoreCase);
             return m.Success ? m.Groups[1].Value : "";
+        }
+
+        #endregion
+
+        #region renumbering
+
+        public class RenameEntry
+        {
+            public string From;      // full path
+            public string To;        // full path
+            public string Slot;
+            public override string ToString()
+            {
+                return Path.GetFileName(From) + "   ->   " + Path.GetFileName(To);
+            }
+        }
+
+        /// <summary>What sorting a ped folder would rename, worked out before anything is touched.</summary>
+        public class RenumberPlan
+        {
+            public string Directory;
+            public string PedName;
+            public readonly List<RenameEntry> Renames = new List<RenameEntry>();
+            public readonly List<string> Problems = new List<string>();
+            public readonly List<string> Summary = new List<string>();
+            public int OtherFolders;
+        }
+
+        private class ParsedFile
+        {
+            public string Path;
+            public Match Match;
+            public bool IsProp;
+            public bool IsTexture;
+            public int SlotId;
+            public int Number;
+            public int Letter = -1;
+        }
+
+        private static ParsedFile ParseFile(string path)
+        {
+            string name = Path.GetFileName(path);
+            foreach (var pattern in _PATTERNS)
+            {
+                Match m = pattern.Item1.Match(name);
+                if (!m.Success)
+                {
+                    continue;
+                }
+
+                string slot = m.Groups["slot"].Value.ToLowerInvariant();
+                ParsedFile f = new ParsedFile
+                {
+                    Path = path,
+                    Match = m,
+                    IsProp = pattern.Item2,
+                    IsTexture = m.Groups["letter"].Success,
+                    Number = int.Parse(m.Groups["num"].Value),
+                    SlotId = pattern.Item2
+                        ? (int)(YMTTypes.PropNumbers)Enum.Parse(typeof(YMTTypes.PropNumbers), slot)
+                        : (int)(YMTTypes.ComponentNumbers)Enum.Parse(typeof(YMTTypes.ComponentNumbers), slot),
+                };
+                if (f.IsTexture)
+                {
+                    f.Letter = char.ToLowerInvariant(m.Groups["letter"].Value[0]) - 'a';
+                }
+                return f;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Plans the renames that close the gaps in a ped's numbering: 001 and 005 become
+        /// 001 and 002, and a drawable whose textures are b, d becomes a, b.
+        ///
+        /// Numbers below the first one in use are left alone, so a component that
+        /// deliberately starts at 001 (an empty 000 is the ped's "none" option) keeps that
+        /// empty slot instead of everything sliding down onto it.
+        ///
+        /// Only the folder holding most of the ped's files is touched, since a resource
+        /// often keeps older copies in sibling folders under the same names.
+        /// </summary>
+        public static RenumberPlan PlanRenumber(string folder, string pedKey)
+        {
+            RenumberPlan plan = new RenumberPlan();
+            List<ParsedFile> parsed = new List<ParsedFile>();
+
+            foreach (string path in Directory.GetFiles(folder, "*", SearchOption.AllDirectories))
+            {
+                ParsedFile f = ParseFile(path);
+                if (f == null)
+                {
+                    continue;
+                }
+                string prefix = f.Match.Groups["prefix"].Success ? f.Match.Groups["prefix"].Value : "";
+                if (PedNameFor(prefix, f.IsProp).ToLowerInvariant() != (pedKey ?? "").ToLowerInvariant())
+                {
+                    continue;
+                }
+                parsed.Add(f);
+            }
+
+            if (parsed.Count == 0)
+            {
+                plan.Problems.Add("No files for that ped in " + folder);
+                return plan;
+            }
+
+            // one folder only: pick the one holding most of the ped
+            var byDirectory = parsed.GroupBy(f => Path.GetDirectoryName(f.Path))
+                                    .OrderByDescending(g => g.Count()).ToList();
+            plan.Directory = byDirectory[0].Key;
+            plan.OtherFolders = byDirectory.Count - 1;
+            List<ParsedFile> files = byDirectory[0].ToList();
+
+            HashSet<string> existing = new HashSet<string>(
+                Directory.GetFiles(plan.Directory).Select(p => Path.GetFileName(p).ToLowerInvariant()));
+
+            foreach (var slot in files.GroupBy(f => new { f.IsProp, f.SlotId })
+                                      .OrderBy(g => g.Key.IsProp).ThenBy(g => g.Key.SlotId))
+            {
+                string slotName = slot.Key.IsProp
+                    ? Enum.GetName(typeof(YMTTypes.PropNumbers), slot.Key.SlotId)
+                    : Enum.GetName(typeof(YMTTypes.ComponentNumbers), slot.Key.SlotId);
+
+                // numbers keep their order; the first one in use stays where it is
+                List<int> numbers = slot.Select(f => f.Number).Distinct().OrderBy(n => n).ToList();
+                Dictionary<int, int> numberMap = new Dictionary<int, int>();
+                int next = numbers[0];
+                foreach (int number in numbers)
+                {
+                    numberMap[number] = next++;
+                }
+
+                // texture letters always start at a
+                Dictionary<int, Dictionary<int, int>> letterMap = new Dictionary<int, Dictionary<int, int>>();
+                foreach (var drawable in slot.Where(f => f.IsTexture).GroupBy(f => f.Number))
+                {
+                    List<int> letters = drawable.Select(f => f.Letter).Distinct().OrderBy(l => l).ToList();
+                    Dictionary<int, int> map = new Dictionary<int, int>();
+                    for (int i = 0; i < letters.Count; i++)
+                    {
+                        map[letters[i]] = i;
+                    }
+                    letterMap[drawable.Key] = map;
+                }
+
+                int movedDrawables = numberMap.Count(kv => kv.Key != kv.Value);
+                int movedTextures = letterMap.Sum(d => d.Value.Count(kv => kv.Key != kv.Value));
+                if (movedDrawables > 0 || movedTextures > 0)
+                {
+                    plan.Summary.Add(slotName + ": " + string.Join(", ",
+                        numberMap.Where(kv => kv.Key != kv.Value)
+                                 .Select(kv => kv.Key.ToString("D3") + " -> " + kv.Value.ToString("D3")).ToArray())
+                        + (movedTextures > 0 ? (movedDrawables > 0 ? ", " : "") + movedTextures + " texture(s) re-lettered" : ""));
+                }
+
+                foreach (ParsedFile f in slot)
+                {
+                    int newNumber = numberMap[f.Number];
+                    int newLetter = f.IsTexture ? letterMap[f.Number][f.Letter] : -1;
+                    if (newNumber == f.Number && (!f.IsTexture || newLetter == f.Letter))
+                    {
+                        continue;
+                    }
+
+                    string newName = Rename(f, newNumber, newLetter);
+                    string target = Path.Combine(plan.Directory, newName);
+
+                    //only a file that is itself moving may be in the way
+                    if (existing.Contains(newName.ToLowerInvariant())
+                        && !files.Any(o => string.Equals(Path.GetFileName(o.Path), newName, StringComparison.OrdinalIgnoreCase)
+                                           && (numberMap[o.Number] != o.Number
+                                               || (o.IsTexture && letterMap[o.Number][o.Letter] != o.Letter))))
+                    {
+                        plan.Problems.Add(newName + " already exists and is not being moved, so "
+                            + Path.GetFileName(f.Path) + " was left alone.");
+                        continue;
+                    }
+
+                    plan.Renames.Add(new RenameEntry { From = f.Path, To = target, Slot = slotName });
+                }
+            }
+
+            return plan;
+        }
+
+        /// <summary>Same file name with a new drawable number, and texture letter.</summary>
+        private static string Rename(ParsedFile f, int newNumber, int newLetter)
+        {
+            string name = Path.GetFileName(f.Path);
+            Group num = f.Match.Groups["num"];
+            Group letter = f.Match.Groups["letter"];
+
+            //right to left, so the earlier group keeps its offset
+            if (f.IsTexture && newLetter != f.Letter)
+            {
+                name = name.Remove(letter.Index, letter.Length)
+                           .Insert(letter.Index, ((char)('a' + newLetter)).ToString());
+            }
+            if (newNumber != f.Number)
+            {
+                name = name.Remove(num.Index, num.Length).Insert(num.Index, newNumber.ToString("D3"));
+            }
+            return name;
+        }
+
+        /// <summary>
+        /// Applies a plan. Everything moves to a temporary name first, so a file never
+        /// lands on one that hasn't moved out of the way yet.
+        /// </summary>
+        public static void ApplyRenumber(RenumberPlan plan)
+        {
+            List<string> temps = new List<string>();
+            foreach (RenameEntry r in plan.Renames)
+            {
+                string temp = r.From + ".renumbering";
+                File.Move(r.From, temp);
+                temps.Add(temp);
+            }
+            for (int i = 0; i < plan.Renames.Count; i++)
+            {
+                File.Move(temps[i], plan.Renames[i].To);
+            }
         }
 
         #endregion
