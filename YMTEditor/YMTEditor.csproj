@@ -102,6 +102,11 @@
     </Compile>
     <Compile Include="ComponentInfo.cs" />
     <Compile Include="FolderPicker.cs" />
+    <Compile Include="PedFileRenamer.cs" />
+    <Compile Include="BatchRenameWindow.xaml.cs">
+      <DependentUpon>BatchRenameWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="PedFolderScanner.cs" />
     <Compile Include="RenumberWindow.xaml.cs">
       <DependentUpon>RenumberWindow.xaml</DependentUpon>
@@ -130,6 +135,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="Themes\Modern.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="BatchRenameWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

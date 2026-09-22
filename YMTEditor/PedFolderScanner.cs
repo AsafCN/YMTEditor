@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -311,7 +311,7 @@ namespace YMTEditor
             public int OtherFolders;
         }
 
-        private class ParsedFile
+        internal class ParsedFile
         {
             public string Path;
             public Match Match;
@@ -322,7 +322,7 @@ namespace YMTEditor
             public int Letter = -1;
         }
 
-        private static ParsedFile ParseFile(string path)
+        internal static ParsedFile ParseFile(string path)
         {
             string name = Path.GetFileName(path);
             foreach (var pattern in _PATTERNS)

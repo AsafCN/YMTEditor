@@ -29,6 +29,23 @@ named the way GTA expects.
 
 A folder can also be dropped straight onto YMTEditor.exe, or passed on the command line.
 
+### Batch rename
+`File -> Batch rename files...` renames a whole folder at once, with a live preview and
+clashes flagged before anything happens. Beside the plain text rules there are ped aware
+ones, which is where the time goes:
+
+| Rule | Does |
+|---|---|
+| Rename the ped | `ig_old^jbib_000_u.ydd`, `ig_old_p^p_head_000.ydd`, `ig_old.ymt` and `ig_old.yft` all become `ig_new...` in one go |
+| Move component | `jbib_004_u.ydd` -> `task_004_u.ydd`, textures included, slot position only |
+| Shift numbers by | moves drawable numbers (+5 turns 004 into 009), optionally in one slot - handy before merging two peds |
+| Replace / Remove / Add | plain text on the file name, e.g. `_uni` -> `_whi` |
+| lower case | for folders that came back from Windows in mixed case |
+
+Two files landing on one name, or landing on a file that isn't moving, are marked in the
+preview and skipped. Renames go through a temporary name, so shifting a whole component
+down by one can't overwrite anything, and `rename-log.txt` records what moved.
+
 ### Sort ped folder
 `File -> Sort ped folder (close numbering gaps)...` renames the files so the numbers run
 without gaps: a component with 001 and 005 ends up with 001 and 002, and a drawable whose

@@ -29,6 +29,8 @@
                           ToolTip="Read a ped folder's .ydd/.ytd names and fill in every drawable and texture" />
                 <MenuItem Name="SortFolderBtn" Header="Sor_t ped folder (close numbering gaps)..." Click="SortFolder_Click"
                           ToolTip="Rename the files so the numbers run without gaps (001 and 005 become 001 and 002)" />
+                <MenuItem Name="BatchRenameBtn" Header="Batch _rename files..." Click="BatchRename_Click"
+                          ToolTip="Rename a ped, move a component to another slot, shift numbers, replace text..." />
                 <Separator />
                 <MenuItem Header="_Open (YMT)" Click="OpenYMT_Click"/>
                 <MenuItem Name="SaveBtn" Header="_Save" InputGestureText="Ctrl+S" Click="Save_Click" IsEnabled="False"

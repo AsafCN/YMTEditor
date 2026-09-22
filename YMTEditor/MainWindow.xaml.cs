@@ -1120,6 +1120,18 @@ namespace YMTEditor
             ShowBuildSummary(layout, scan);
         }
 
+        private void BatchRename_Click(object sender, RoutedEventArgs e)
+        {
+            BatchRenameWindow renamer = new BatchRenameWindow(openedPath) { Owner = this };
+            renamer.ShowDialog();
+
+            //what is on screen came from names that may no longer exist
+            if (renamer.Renamed && Components.Count > 0)
+            {
+                SetLogMessage("Files were renamed - rebuild or reopen to see them");
+            }
+        }
+
         private void SortFolder_Click(object sender, RoutedEventArgs e)
         {
             string folder = FolderPicker.Pick(this,
